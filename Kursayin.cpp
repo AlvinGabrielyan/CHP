@@ -9,7 +9,6 @@
 #include <map>
 using namespace std;
 
-// User structure to simulate database records
 struct User {
     int user_id;
     string username;
@@ -18,7 +17,6 @@ struct User {
     string role;
 };
 
-// Global user database (in-memory)
 vector<User> users = {
     {1, "admin", "admin123", "admin@example.com", "administrator"},
     {2, "john", "password123", "john@example.com", "user"},
@@ -27,7 +25,6 @@ vector<User> users = {
     {5, "sarah", "sarah123", "sarah@example.com", "manager"}
 };
 
-// Helper function declarations
 bool logAttempt(const string& username, bool success, const string& errorMsg = "");
 void runSecureQuery();
 void runVulnerableQuery();
@@ -35,75 +32,57 @@ void showUserData(const vector<User>& results);
 void displayMenu();
 bool validateInput(const string& input);
 
-// Simulated SQL query execution - vulnerable version
 vector<User> executeVulnerableQuery(const string& query) {
     vector<User> results;
     cout << "Executing query: " << query << endl;
 
-    // Convert query to lowercase for easier parsing
     string lowerQuery = query;
     transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), ::tolower);
 
-    // Simple SQL parser to simulate SQL injection vulnerabilities
-
-    // Check for login query
     if (lowerQuery.find("select") != string::npos &&
         lowerQuery.find("from users where") != string::npos) {
 
-        // Extract conditions after WHERE
         size_t wherePos = lowerQuery.find("where");
         string conditions = lowerQuery.substr(wherePos + 5);
 
-        // Handle SQL injection like ' or '1'='1
         if (conditions.find("'1'='1") != string::npos ||
             conditions.find("1=1") != string::npos) {
-            // SQL injection detected - return all users
             return users;
         }
 
-        // Handle normal username/password check
         for (const auto& user : users) {
-            // Very simplified check - in a real parser this would be much more complex
             if (query.find(user.username) != string::npos &&
                 query.find(user.password) != string::npos) {
                 results.push_back(user);
                 return results;
             }
 
-            // Check for comment injection (-- or #)
             if (query.find("--") != string::npos || query.find("#") != string::npos) {
                 size_t usernamePos = query.find(user.username);
                 if (usernamePos != string::npos) {
-                    // Username found and password check commented out
                     results.push_back(user);
                     return results;
                 }
             }
         }
     }
-    // Handle LIKE queries for search functionality
     else if (lowerQuery.find("select") != string::npos &&
         lowerQuery.find("like") != string::npos) {
 
-        // Extract search term
         size_t likePos = lowerQuery.find("like");
         string searchCondition = lowerQuery.substr(likePos + 4);
 
-        // Handle SQL injection
         if (searchCondition.find("'1'='1") != string::npos ||
             searchCondition.find("1=1") != string::npos) {
-            // SQL injection detected - return all users
             return users;
         }
 
-        // Extract actual search term between percentage signs
         size_t firstQuote = searchCondition.find("'%");
         size_t lastQuote = searchCondition.find("%'");
 
         if (firstQuote != string::npos && lastQuote != string::npos) {
             string searchTerm = searchCondition.substr(firstQuote + 2, lastQuote - firstQuote - 2);
 
-            // Perform the search
             for (const auto& user : users) {
                 if (user.username.find(searchTerm) != string::npos ||
                     user.email.find(searchTerm) != string::npos) {
@@ -116,7 +95,6 @@ vector<User> executeVulnerableQuery(const string& query) {
     return results;
 }
 
-// Simulated SQL query execution - secure parameterized version
 vector<User> executeSecureQuery(const string& queryTemplate, const map<int, string>& params) {
     vector<User> results;
 
@@ -127,13 +105,11 @@ vector<User> executeSecureQuery(const string& queryTemplate, const map<int, stri
     }
     cout << endl;
 
-    // Handle login query
     if (queryTemplate.find("SELECT user_id, username, role FROM users WHERE") != string::npos) {
         if (params.find(1) != params.end() && params.find(2) != params.end()) {
             string username = params.at(1);
             string password = params.at(2);
 
-            // Exact match required - no SQL injection possible
             for (const auto& user : users) {
                 if (user.username == username && user.password == password) {
                     results.push_back(user);
@@ -142,15 +118,11 @@ vector<User> executeSecureQuery(const string& queryTemplate, const map<int, stri
             }
         }
     }
-    // Handle search query
     else if (queryTemplate.find("SELECT user_id, username, email, role FROM users") != string::npos) {
         if (params.find(1) != params.end()) {
             string searchTerm = params.at(1);
+            searchTerm = searchTerm.substr(1, searchTerm.length() - 2);
 
-            // Remove wildcards from parameter for demonstration
-            searchTerm = searchTerm.substr(1, searchTerm.length() - 2); // Remove % %
-
-            // Clean search - no SQL injection possible
             for (const auto& user : users) {
                 if (user.username.find(searchTerm) != string::npos ||
                     user.email.find(searchTerm) != string::npos) {
@@ -164,7 +136,6 @@ vector<User> executeSecureQuery(const string& queryTemplate, const map<int, stri
 }
 
 int main() {
-    // User credentials
     string username, password;
     bool isLoggedIn = false;
     int loginAttempts = 0;
@@ -178,7 +149,6 @@ int main() {
 
     cout << "Note: Using in-memory simulated database\n\n";
 
-    // Authentication loop
     while (loginAttempts < MAX_ATTEMPTS && !isLoggedIn) {
         cout << "LOGIN SCREEN (Attempt " << loginAttempts + 1 << " of " << MAX_ATTEMPTS << ")\n";
         cout << "Username: ";
@@ -186,12 +156,9 @@ int main() {
         cout << "Password: ";
         getline(cin, password);
 
-        // VULNERABLE IMPLEMENTATION FOR DEMONSTRATION
-        // This code is intentionally vulnerable to SQL injection
         string queryStr = "SELECT user_id, username, role FROM users WHERE username = '"
             + username + "' AND password = '" + password + "'";
 
-        // Execute the simulated query
         vector<User> results = executeVulnerableQuery(queryStr);
 
         if (!results.empty()) {
@@ -203,10 +170,8 @@ int main() {
             cout << "Username: " << user.username << endl;
             cout << "Role: " << user.role << endl << endl;
 
-            // Log the successful login
             logAttempt(username, true);
 
-            // Note the vulnerability here: SQL injection could return multiple rows
             if (results.size() > 1) {
                 cout << "WARNING: Multiple users match the criteria - possible SQL injection!\n";
             }
@@ -223,7 +188,6 @@ int main() {
         }
     }
 
-    // After authentication
     if (isLoggedIn) {
         int choice = 0;
 
@@ -231,29 +195,26 @@ int main() {
             displayMenu();
             cout << "Enter your choice: ";
             cin >> choice;
-            cin.ignore(); // Clear the newline
+            cin.ignore();
 
-            // Common string variables to be used across cases
             string searchTerm;
             string queryStr;
 
             switch (choice) {
-            case 1: // Vulnerable search
+            case 1:
                 cout << "Enter search term: ";
                 getline(cin, searchTerm);
 
                 cout << "VULNERABLE QUERY - Demonstrating SQL Injection Risk\n";
                 cout << "-----------------------------------------------\n";
 
-                // Create vulnerable query
                 queryStr = "SELECT user_id, username, email, role FROM users WHERE username LIKE '%"
                     + searchTerm + "%' OR email LIKE '%" + searchTerm + "%'";
 
-                // Execute the query
                 showUserData(executeVulnerableQuery(queryStr));
                 break;
 
-            case 2: // Parameterized search (safe)
+            case 2:
             {
                 cout << "Enter search term: ";
                 getline(cin, searchTerm);
@@ -261,27 +222,24 @@ int main() {
                 cout << "SAFE QUERY - Using Parameterized Statements\n";
                 cout << "---------------------------------------\n";
 
-                // Create parameterized query
                 string paramQueryStr = "SELECT user_id, username, email, role FROM users WHERE username LIKE ? OR email LIKE ?";
 
-                // Create parameter values with wildcards
                 map<int, string> params;
                 params[1] = "%" + searchTerm + "%";
 
-                // Execute secure query
                 showUserData(executeSecureQuery(paramQueryStr, params));
             }
             break;
 
-            case 3: // Run demonstration of vulnerable queries
+            case 3:
                 runVulnerableQuery();
                 break;
 
-            case 4: // Run demonstration of secure queries
+            case 4:
                 runSecureQuery();
                 break;
 
-            case 5: // Exit
+            case 5:
                 cout << "Logging out...\n";
                 break;
 
@@ -303,25 +261,20 @@ int main() {
     return 0;
 }
 
-// Log login attempts
 bool logAttempt(const string& username, bool success, const string& errorMsg) {
-    // Get current time
     time_t now = time(0);
     struct tm timeinfo;
     char timestamp[80];
 
-    // Use localtime_s for better safety (avoid C4996 warning)
     localtime_s(&timeinfo, &now);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
-    // Open log file
     ofstream logFile("auth_log.txt", ios::app);
     if (!logFile.is_open()) {
         cerr << "Failed to open log file.\n";
         return false;
     }
 
-    // Write log entry
     logFile << timestamp << " | User: " << setw(15) << left << username
         << " | Status: " << (success ? "SUCCESS" : "FAILURE");
 
@@ -334,16 +287,13 @@ bool logAttempt(const string& username, bool success, const string& errorMsg) {
     return true;
 }
 
-// Display formatted user data from query results
 void showUserData(const vector<User>& results) {
-    // Print table header
     cout << setw(10) << left << "USER ID"
         << setw(20) << left << "USERNAME"
         << setw(30) << left << "EMAIL"
         << setw(15) << left << "ROLE" << endl;
     cout << string(75, '-') << endl;
 
-    // Display rows
     for (const auto& user : results) {
         cout << setw(10) << left << user.user_id
             << setw(20) << left << user.username
@@ -355,7 +305,6 @@ void showUserData(const vector<User>& results) {
     cout << results.size() << " record(s) found.\n";
 }
 
-// Display the main menu options
 void displayMenu() {
     cout << "\n=================================================\n";
     cout << "                   MAIN MENU                     \n";
@@ -368,36 +317,11 @@ void displayMenu() {
     cout << "-------------------------------------------------\n";
 }
 
-// Run demonstration of various SQL injection vulnerabilities
 void runVulnerableQuery() {
     cout << "\n=================================================\n";
     cout << "       SQL INJECTION VULNERABILITY EXAMPLES       \n";
     cout << "=================================================\n";
 
-    // Example 1: Authentication bypass
-    cout << "Example 1: Authentication Bypass\n";
-    cout << "-------------------------------------------------\n";
-    cout << "Vulnerable Code:\n";
-    cout << "   query = \"SELECT * FROM users WHERE username = '\" + username + \"' AND password = '\" + password + \"'\"\n\n";
-    cout << "Attack Input: username = admin' --\n";
-    cout << "               password = anything\n\n";
-    cout << "Resulting Query:\n";
-    cout << "   SELECT * FROM users WHERE username = 'admin' --' AND password = 'anything'\n\n";
-    cout << "Effect: The -- comments out the password check, allowing login as admin\n";
-    cout << "-------------------------------------------------\n\n";
-
-    // Example 2: UNION-based attack
-    cout << "Example 2: UNION-based Attack\n";
-    cout << "-------------------------------------------------\n";
-    cout << "Vulnerable Code:\n";
-    cout << "   query = \"SELECT name, description FROM products WHERE id = \" + productId\n\n";
-    cout << "Attack Input: productId = 1 UNION SELECT username, password FROM users --\n\n";
-    cout << "Resulting Query:\n";
-    cout << "   SELECT name, description FROM products WHERE id = 1 UNION SELECT username, password FROM users --\n\n";
-    cout << "Effect: Returns product data combined with all usernames and passwords\n";
-    cout << "-------------------------------------------------\n\n";
-
-    // Live demonstration
     cout << "Would you like to run a simulated attack? (y/n): ";
     char choice;
     cin >> choice;
@@ -421,36 +345,11 @@ void runVulnerableQuery() {
     }
 }
 
-// Run demonstration of secure queries
 void runSecureQuery() {
     cout << "\n=================================================\n";
     cout << "            SECURE QUERY EXAMPLES                \n";
     cout << "=================================================\n";
 
-    // Example 1: Parameterized queries
-    cout << "Example 1: Parameterized Queries\n";
-    cout << "-------------------------------------------------\n";
-    cout << "Secure Code:\n";
-    cout << "   query = \"SELECT * FROM users WHERE username = ? AND password = ?\"\n";
-    cout << "   SQLPrepare(stmt, query, SQL_NTS);\n";
-    cout << "   SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 0, 0, username, 0, NULL);\n";
-    cout << "   SQLBindParameter(stmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 0, 0, password, 0, NULL);\n";
-    cout << "   SQLExecute(stmt);\n\n";
-    cout << "Effect: Even if username contains SQL injection attempts like \"admin' --\",\n";
-    cout << "        it will be treated as a literal string, not as SQL code.\n";
-    cout << "-------------------------------------------------\n\n";
-
-    // Example 2: Input validation
-    cout << "Example 2: Input Validation\n";
-    cout << "-------------------------------------------------\n";
-    cout << "Secure Code:\n";
-    cout << "   if(!validateInput(username) || !validateInput(password)) {\n";
-    cout << "       return ERROR_INVALID_INPUT;\n";
-    cout << "   }\n\n";
-    cout << "Effect: Reject inputs containing suspicious characters (', \", --, etc.)\n";
-    cout << "-------------------------------------------------\n\n";
-
-    // Live demonstration
     cout << "Would you like to run a parameterized query demonstration? (y/n): ";
     char choice;
     cin >> choice;
@@ -460,16 +359,13 @@ void runSecureQuery() {
         string searchTerm = "admin' OR '1'='1";
         cout << "\nSearching for malicious term: " << searchTerm << endl;
 
-        // Create parameterized query
         string paramQueryStr = "SELECT user_id, username, email, role FROM users WHERE username LIKE ?";
 
-        // Create parameter map
         map<int, string> params;
         params[1] = "%" + searchTerm + "%";
 
         cout << "Executing parameterized query with search term treated as literal string\n\n";
 
-        // Execute secure query
         vector<User> results = executeSecureQuery(paramQueryStr, params);
 
         if (!results.empty()) {
@@ -485,9 +381,7 @@ void runSecureQuery() {
     }
 }
 
-// Simple input validation function
 bool validateInput(const string& input) {
-    // Check for common SQL injection characters/strings
     vector<string> blacklist = {
         "'", "\"", ";", "--", "/*", "*/", "@@", "@",
         "char", "nchar", "varchar", "exec",
